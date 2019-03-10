@@ -34,7 +34,11 @@ ifeq ($(TargetExt),)
 	TargetFile = $(OutputPath)/$(Target)
 
 	ifeq ($(Rpath),)
-		Rpath := ./lib
+		ifeq ($(Target),test)
+			Rpath := ../../lib
+		else
+			Rpath := ../lib
+		endif
 	endif
 endif
 ifeq ($(TargetExt),.a)
@@ -51,10 +55,6 @@ ifeq ($(Target),test)
 	OutputPath = $(BuildPath)/test/$(Package)
 	TestTarget = $(basename $(Source))
 	TargetFile = $(TestTarget:%=$(OutputPath)/%)
-
-	ifeq ($(Rpath),)
-		Rpath := ./../lib
-	endif
 endif
 
 # Include & Define
