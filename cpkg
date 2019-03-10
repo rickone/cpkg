@@ -25,6 +25,29 @@ function save() {
     done
 }
 
+function clear_pkgs() {
+    pkgs=()
+}
+
+function push_pkg() {
+    test_pkg $1
+    if [ $? != 0 ]; then
+        return
+    fi
+
+    pkgs+=($1)
+}
+
+function test_pkg() {
+    for i in ${pkgs[@]}; do
+        if [ "$i" == "$1" ]; then
+            return 128
+        fi
+    done
+
+    return 0
+}
+
 function list() {
     if [ ! -f $1 ]; then
         return
@@ -34,12 +57,13 @@ function list() {
         local field=(${line//[=@]/ })
         local name=${field[0]}
 
-        if [ "${pkgs[$name]}" != "" ]; then
+        test_pkg $name
+        if [ $? != 0 ]; then
             continue
         fi
         
         echo $line
-        pkgs[$name]="done"
+        push_pkg $name
         list $PKG_DIR/$name/$PKG_SUM
     done
 }
@@ -78,7 +102,8 @@ function ensure() {
         local url=${field[1]}
         local rev=${field[2]}
 
-        if [ "${pkgs[$name]}" != "" ]; then
+        test_pkg $name
+        if [ $? != 0 ]; then
             continue
         fi
 
@@ -109,7 +134,7 @@ function ensure() {
             fi
         fi
 
-        pkgs[$name]="done"
+        push_pkg $name
 
         ensure $PKG_DIR/$name/$PKG_SUM
     done
@@ -179,13 +204,14 @@ function remove() {
 }
 
 function build_pkg() {
-    pkgs[$1]="done"
+    push_pkg $1
 
     for line in $(load $PKG_DIR/$1/$PKG_SUM); do
         local field=(${line//[=@]/ })
         local name=${field[0]}
 
-        if [ "${pkgs[$name]}" != "" ]; then
+        test_pkg $name
+        if [ $? != 0 ]; then
             continue
         fi
         
@@ -204,7 +230,7 @@ function build() {
         build_path="`pwd`/build"
     fi
 
-    pkgs=()
+    clear_pkgs
     for line in $(load $PKG_SUM); do
         local field=(${line//[=@]/ })
         local name=${field[0]}

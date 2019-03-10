@@ -157,3 +157,4 @@ $(ObjectPath)/%.d: %.cpp
 
 $(ExportHeaderPath): $(ExportHeader)
 	@if [ "$^" != "" ]; then mkdir -p $@ && cp $^ $@; fi
+	@touch $@
