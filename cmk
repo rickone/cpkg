@@ -19,28 +19,42 @@
 Config ?= Debug
 UnixName ?= $(shell uname)
 BuildPath ?= ../build
-Package ?= $(notdir $(shell cd .. && pwd))
+
+ifeq ($(Package),)
+	Package := $(notdir $(shell cd .. && pwd))
+endif
 
 # TargetExt "", ".a", ".so" ".test"
 TargetExt = $(suffix $(Target))
 
-# OutputPath, TargetFile
+# OutputPath, TargetName & TargetFile
 ifeq ($(TargetExt),)
 	OutputPath = $(BuildPath)/bin
+	TargetName = $(Target)
 	TargetFile = $(OutputPath)/$(Target)
+
+	ifeq ($(Rpath),)
+		Rpath := ./lib
+	endif
 endif
 ifeq ($(TargetExt),.a)
 	OutputPath = $(BuildPath)/lib
+	TargetName = $(patsubst lib%.a,%,$(Target))
 	TargetFile = $(OutputPath)/$(Target)
 endif
 ifeq ($(TargetExt),.so)
 	OutputPath = $(BuildPath)/lib
+	TargetName = $(patsubst lib%.so,%,$(Target))
 	TargetFile = $(OutputPath)/$(Target)
 endif
 ifeq ($(Target),test)
-	OutputPath = $(BuildPath)/test
+	OutputPath = $(BuildPath)/test/$(Package)
 	TestTarget = $(basename $(Source))
 	TargetFile = $(TestTarget:%=$(OutputPath)/%)
+
+	ifeq ($(Rpath),)
+		Rpath := ./../lib
+	endif
 endif
 
 # Include & Define
@@ -52,7 +66,7 @@ LibraryPath = -L$(BuildPath)/lib
 Library = $(Lib:%=-l%)
 
 # ObjectPath
-ObjectPath = $(BuildPath)/obj/$(Package)
+ObjectPath = $(BuildPath)/obj/$(Package)/$(TargetName)
 
 # ExportHeaderPath
 ExportHeaderPath = $(BuildPath)/include/$(Package)
@@ -69,9 +83,7 @@ endif
 
 # Link
 ifeq ($(TargetExt),)
-	ifeq ($(Rpath),)
-		Rpath = ./
-	endif
+
 
 	Link = g++ -Wl,-rpath,$(Rpath) $(LibraryPath) -o $@ $^ $(Library) $(LDFLAGS)
 endif
@@ -123,7 +135,7 @@ $(BuildPath)/lib/$(Target): $(Obj:%=$(ObjectPath)/%)
 	@echo Link $@ ...
 	@$(Link)
 
-$(BuildPath)/test/%: $(ObjectPath)/%.o
+$(BuildPath)/test/$(Package)/%: $(ObjectPath)/%.o
 	@echo Link $@ ...
 	@$(Link)
 
