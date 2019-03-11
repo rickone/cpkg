@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 PKG_DIR="pkg"
 PKG_SUM="pkg.sum"
