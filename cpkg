@@ -215,24 +215,22 @@ function build_pkg() {
             continue
         fi
         
-        build_pkg $name $2
+        build_pkg $name
     done
 
     (
         cd $PKG_DIR/$1
-        make BuildPath=$2
+        make
     )
 }
 
 function build() {
-    local build_path=$1
-    if [ "$1" == "" ]; then
-        build_path="`pwd`/build"
+    if [ "$OutputPath" == "" ]; then
+        export OutputPath="`pwd`/output"
     fi
 
-    local cmk_path=$2
-    if [ "$2" == "" ]; then
-        cmk_path="/usr/local/etc/cmk"
+    if [ "$CPKG_PATH" == "" ]; then
+        export CPKG_PATH="`pwd`/pkg/cpkg"
     fi
 
     clear_pkgs
@@ -240,10 +238,10 @@ function build() {
         local field=(${line//[=@]/ })
         local name=${field[0]}
 
-        build_pkg $name $build_path
+        build_pkg $name
     done
 
-    make BuildPath=$build_path CmkPath=$cmk_path
+    make
 }
 
 function genmake() {
@@ -264,7 +262,7 @@ function genmake() {
     echo "LDFLAGS =" >> makefile
     echo "Rpath =" >> makefile
     echo "" >> makefile
-    echo "include $(CmkPath)" >> makefile
+    echo "include \$(CPKG_PATH)/cmk" >> makefile
 }
 
 case $1 in
@@ -289,7 +287,7 @@ case $1 in
     build)
         mkdir -p $PKG_DIR
         ensure $PKG_SUM
-        build $2 $3
+        build
     ;;
     genmake)
         genmake $2

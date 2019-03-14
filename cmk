@@ -1,5 +1,5 @@
 #Package = pkg
-#BuildPath = ../build
+#OutputPath = ../output
 #Target  = xxx libxxx.so libxxx.a xxx.test
 #Include = ../lua ../common
 #Source	= main.cpp
@@ -18,7 +18,7 @@
 # Config: Debug/Release
 Config ?= Debug
 UnixName ?= $(shell uname)
-BuildPath ?= ../build
+OutputPath ?= ../output
 
 ifeq ($(Package),)
 	Package := $(notdir $(shell cd .. && pwd))
@@ -27,11 +27,11 @@ endif
 # TargetExt "", ".a", ".so" ".test"
 TargetExt = $(suffix $(Target))
 
-# OutputPath, TargetName & TargetFile
+# TargetName, TargetPath & TargetFile
 ifeq ($(TargetExt),)
-	OutputPath = $(BuildPath)/bin
 	TargetName = $(Target)
-	TargetFile = $(OutputPath)/$(Target)
+	TargetPath = $(OutputPath)/bin
+	TargetFile = $(TargetPath)/$(Target)
 
 	ifeq ($(Rpath),)
 		ifeq ($(Target),test)
@@ -42,34 +42,34 @@ ifeq ($(TargetExt),)
 	endif
 endif
 ifeq ($(TargetExt),.a)
-	OutputPath = $(BuildPath)/lib
 	TargetName = $(patsubst lib%.a,%,$(Target))
-	TargetFile = $(OutputPath)/$(Target)
+	TargetPath = $(OutputPath)/lib
+	TargetFile = $(TargetPath)/$(Target)
 endif
 ifeq ($(TargetExt),.so)
-	OutputPath = $(BuildPath)/lib
 	TargetName = $(patsubst lib%.so,%,$(Target))
-	TargetFile = $(OutputPath)/$(Target)
+	TargetPath = $(OutputPath)/lib
+	TargetFile = $(TargetPath)/$(Target)
 endif
 ifeq ($(Target),test)
-	OutputPath = $(BuildPath)/test/$(Package)
+	TargetPath = $(OutputPath)/test/$(Package)
 	TestTarget = $(basename $(Source))
-	TargetFile = $(TestTarget:%=$(OutputPath)/%)
+	TargetFile = $(TestTarget:%=$(TargetPath)/%)
 endif
 
 # Include & Define
-Include += $(Lib:%=$(BuildPath)/include/%)
+Include += $(Lib:%=$(OutputPath)/include/%)
 CFLAGS += $(Include:%=-I%) $(Define:%=-D%) -m64
 
 # Library
-LibraryPath = -L$(BuildPath)/lib
+LibraryPath = -L$(OutputPath)/lib
 Library = $(Lib:%=-l%)
 
 # ObjectPath
-ObjectPath = $(BuildPath)/obj/$(Package)/$(TargetName)
+ObjectPath = $(OutputPath)/obj/$(Package)/$(TargetName)
 
 # ExportHeaderPath
-ExportHeaderPath = $(BuildPath)/include/$(Package)
+ExportHeaderPath = $(OutputPath)/include/$(Package)
 
 # Config
 ifeq ($(Config),Release)
@@ -108,7 +108,7 @@ Obj = $(addsuffix .o,$(basename $(Source)))
 Dep = $(addsuffix .d,$(basename $(Source)))
 
 SourcePath = $(dir $(Source))
-$(shell mkdir -p $(OutputPath) $(SourcePath:%=$(ObjectPath)/%))
+$(shell mkdir -p $(TargetPath) $(SourcePath:%=$(ObjectPath)/%))
 
 define info
 	@echo ">>>> $(UnixName).make:" $(Target) [$(Config)]
@@ -127,15 +127,15 @@ clean:
 info:
 	$(info)
 
-$(BuildPath)/bin/$(Target): $(Obj:%=$(ObjectPath)/%)
+$(OutputPath)/bin/$(Target): $(Obj:%=$(ObjectPath)/%)
 	@echo Link $@ ...
 	@$(Link)
 
-$(BuildPath)/lib/$(Target): $(Obj:%=$(ObjectPath)/%)
+$(OutputPath)/lib/$(Target): $(Obj:%=$(ObjectPath)/%)
 	@echo Link $@ ...
 	@$(Link)
 
-$(BuildPath)/test/$(Package)/%: $(ObjectPath)/%.o
+$(OutputPath)/test/$(Package)/%: $(ObjectPath)/%.o
 	@echo Link $@ ...
 	@$(Link)
 

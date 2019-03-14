@@ -4,5 +4,4 @@ PWD=${shell pwd}
 
 install:
 	@chmod +x cpkg
-	@cd /usr/local/bin && ln -s ${PWD}/cpkg cpkg
-	@cd /usr/local/etc && ln -s ${PWD}/cmk cmk
+	@ln -s ${PWD}/cpkg /usr/local/bin/cpkg
