@@ -6,7 +6,7 @@ PKG_SUM="pkg.sum"
 pkgs=()
 
 function usage() {
-    echo "Usage: cpkg <add|ensure|update|remove>"
+    echo "Usage: cpkg <list|add|ensure|update|remove|build|genmake>"
 }
 
 function load() {
@@ -230,6 +230,11 @@ function build() {
         build_path="`pwd`/build"
     fi
 
+    local cmk_path=$2
+    if [ "$2" == "" ]; then
+        cmk_path="/usr/local/etc/cmk"
+    fi
+
     clear_pkgs
     for line in $(load $PKG_SUM); do
         local field=(${line//[=@]/ })
@@ -238,7 +243,7 @@ function build() {
         build_pkg $name $build_path
     done
 
-    make BuildPath=$build_path
+    make BuildPath=$build_path CmkPath=$cmk_path
 }
 
 function genmake() {
@@ -259,7 +264,7 @@ function genmake() {
     echo "LDFLAGS =" >> makefile
     echo "Rpath =" >> makefile
     echo "" >> makefile
-    echo "include /usr/local/etc/cmk" >> makefile
+    echo "include $(CmkPath)" >> makefile
 }
 
 case $1 in
@@ -284,7 +289,7 @@ case $1 in
     build)
         mkdir -p $PKG_DIR
         ensure $PKG_SUM
-        build
+        build $2 $3
     ;;
     genmake)
         genmake $2
