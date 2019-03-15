@@ -1,11 +1,12 @@
-#Package = pkg
+#Package =
 #OutputPath = ../output
-#Target  = xxx libxxx.so libxxx.a xxx.test
-#Include = ../lua ../common
-#Source	= main.cpp
-#Lib 	= lua common
+#TargetType = x so a
+#Test = 1
+#Source	=
+#Import =
 #ExportHeader =
 
+#Include =
 #Define =
 #CFLAGS	=
 #CXXFLAGS =
@@ -24,49 +25,45 @@ ifeq ($(Package),)
 	Package := $(notdir $(shell cd .. && pwd))
 endif
 
-# TargetExt "", ".a", ".so" ".test"
-TargetExt = $(suffix $(Target))
+# TargetPath & TargetFile
 
-# TargetName, TargetPath & TargetFile
-ifeq ($(TargetExt),)
-	TargetName = $(Target)
+ifeq ($(TargetType),x)
 	TargetPath = $(OutputPath)/bin
+	Target = $(Package)
 	TargetFile = $(TargetPath)/$(Target)
-
+	
 	ifeq ($(Rpath),)
-		ifeq ($(Target),test)
-			Rpath := ../../lib
-		else
-			Rpath := ../lib
-		endif
+		Rpath = ../lib
 	endif
 endif
-ifeq ($(TargetExt),.a)
-	TargetName = $(patsubst lib%.a,%,$(Target))
+ifeq ($(TargetType),a)
 	TargetPath = $(OutputPath)/lib
+	Target = lib$(Package).a
 	TargetFile = $(TargetPath)/$(Target)
 endif
-ifeq ($(TargetExt),.so)
-	TargetName = $(patsubst lib%.so,%,$(Target))
+ifeq ($(TargetType),so)
 	TargetPath = $(OutputPath)/lib
+	Target = lib$(Package).so
 	TargetFile = $(TargetPath)/$(Target)
 endif
-ifeq ($(Target),test)
+
+ifneq ($(Test),)
 	TargetPath = $(OutputPath)/test/$(Package)
 	TestTarget = $(basename $(Source))
 	TargetFile = $(TestTarget:%=$(TargetPath)/%)
+	Rpath = ../../lib
 endif
 
 # Include & Define
-Include += $(Lib:%=$(OutputPath)/include/%)
+Include += $(Import:%=$(OutputPath)/include/%)
 CFLAGS += $(Include:%=-I%) $(Define:%=-D%) -m64
 
 # Library
 LibraryPath = -L$(OutputPath)/lib
-Library = $(Lib:%=-l%)
+Library = $(Import:%=-l%)
 
 # ObjectPath
-ObjectPath = $(OutputPath)/obj/$(Package)/$(TargetName)
+ObjectPath = $(OutputPath)/obj/$(Package)
 
 # ExportHeaderPath
 ExportHeaderPath = $(OutputPath)/include/$(Package)
@@ -82,24 +79,22 @@ else
 endif
 
 # Link
-ifeq ($(TargetExt),)
-
-
+ifeq ($(TargetType),x)
 	Link = g++ -Wl,-rpath,$(Rpath) $(LibraryPath) -o $@ $^ $(Library) $(LDFLAGS)
 endif
 
-ifeq ($(TargetExt),.so)
+ifeq ($(TargetType),a)
+	CFLAGS += -fPIC
+	Link = ar cr $@ $^
+endif
+
+ifeq ($(TargetType),so)
 	Shared = -shared
 	ifeq ($(UnixName),Darwin)
 		Shared = -dynamiclib -install_name @rpath/$(Target)
 	endif
 	CFLAGS += -fPIC
 	Link = g++ $(Shared) $(LibraryPath) $(Library) $(LDFLAGS) -o $@ $^
-endif
-
-ifeq ($(TargetExt),.a)
-	CFLAGS += -fPIC
-	Link = ar cr $@ $^
 endif
 
 CXXFLAGS += $(CFLAGS)

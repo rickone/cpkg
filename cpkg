@@ -6,7 +6,7 @@ PKG_SUM="pkg.sum"
 pkgs=()
 
 function usage() {
-    echo "Usage: cpkg <list|add|ensure|update|remove|build|genmake>"
+    echo "Usage: cpkg <list|add|ensure|update|remove|build|genmake|install>"
 }
 
 function load() {
@@ -251,13 +251,14 @@ function genmake() {
     fi
 
     echo "Package =" >> makefile
-    echo "Target  = $1" >> makefile
-    echo "Source  = \$(wildcard *.cpp *.c)" >> makefile
-    echo "Lib     =" >> makefile
+    echo "TargetType = $1" >> makefile
+    echo "#Test = 1" >> makefile
+    echo "Source = \$(wildcard *.cpp *.c)" >> makefile
+    echo "Import =" >> makefile
     echo "ExportHeader =" >> makefile
     echo "Include =" >> makefile
-    echo "Define  =" >> makefile
-    echo "CFLAGS  =" >> makefile
+    echo "Define =" >> makefile
+    echo "CFLAGS =" >> makefile
     echo "CXXFLAGS = -std=c++14" >> makefile
     echo "LDFLAGS =" >> makefile
     echo "Rpath =" >> makefile
@@ -291,6 +292,11 @@ case $1 in
     ;;
     genmake)
         genmake $2
+    ;;
+    install)
+        if [ -f "cpkg" ]; then
+            ln -s `pwd`/cpkg /usr/local/bin/cpkg
+        fi
     ;;
     *)
         usage
