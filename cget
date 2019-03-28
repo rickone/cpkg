@@ -1,0 +1,54 @@
+#!/bin/bash
+
+function head_rev() {
+    echo `cd $1 && git rev-parse HEAD`
+}
+
+function update_to() {
+    if [ "$2" == "" ]; then
+        return
+    fi
+
+    if [ "$2" == "master" ]; then
+        (
+            cd $1
+            git pull
+        )
+        return
+    fi
+
+    (
+        cd $1
+        git reset --hard $2
+        if [ $? != 0 ]; then
+            cd $1
+            git pull
+            git reset --hard $2
+        fi
+    )
+}
+
+function split_repo() {
+    local repo=$1
+    local other=${1#*/*/*/}
+    if [ $other != $1 ]; then
+        repo=${1%/$other}
+    fi
+    echo $repo
+}
+
+if [ "$CPKG_PATH" == "" ]; then
+    CPKG_PATH=`echo ~`/cpkg
+fi
+
+repo=$(split_repo $1)
+repo_path="$CPKG_PATH/$repo"
+
+if [ -d $repo_path ]; then
+    if [ "$2" != "" ] && [ "$2" != "$(head_rev $repo_path)" ]; then
+        update_to $repo_path $2
+    fi
+else
+    git clone https://$repo.git $repo_path
+    update_to $repo_path $2
+fi
