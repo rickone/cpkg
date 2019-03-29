@@ -1,155 +1,49 @@
-#Package =
-#OutputPath = ../output
-#TargetType = x so a
-#Test = 1
-#Source	=
-#Import =
-#ExportHeader =
+#!/bin/bash
 
-#Include =
-#Define =
-#CFLAGS	=
-#CXXFLAGS =
-#LDFLAGS =
-#Rpath =
+function create_mk() {
+    if [ -f $1 ]; then
+        return
+    fi
 
-#CC = cc
-#CXX = c++
+    echo "create_mk $1 $2"
 
-# Config: Debug/Release
-Config ?= Debug
-UnixName ?= $(shell uname)
-OutputPath ?= ../output
+    echo "Target = $2" >> $1
+    echo "Source = \$(wildcard *.cpp *.c)" >> $1
+    echo "Lib =" >> $1
+    echo "LibPath =" >> $1
+    echo "Include =" >> $1
+    echo "Define =" >> $1
+    echo "CFLAGS = -g -D_DEBUG -Wall" >> $1
+    echo "CXXFLAGS = -std=c++14" >> $1
+    echo "LDFLAGS =" >> $1
+    echo "Rpath =" >> $1
+    echo "" >> $1
+    echo "include \$(CUTILS_PATH)/template.cmk" >> $1
+}
 
-ifeq ($(Package),)
-	Package := $(notdir $(shell cd .. && pwd))
-endif
+if [ "$CUTILS_PATH" == "" ]; then
+    echo "env.CUTILS_PATH not set!" >&2
+    exit 1
+fi
 
-# TargetPath & TargetFile
+if [ "$CWORK_PATH" == "" ]; then
+    CWORK_PATH=`echo ~`/cwork
+fi
 
-ifeq ($(TargetType),x)
-	TargetPath = $(OutputPath)/bin
-	Target = $(Package)
-	TargetFile = $(TargetPath)/$(Target)
-	
-	ifeq ($(Rpath),)
-		Rpath = ../lib
-	endif
-endif
-ifeq ($(TargetType),a)
-	TargetPath = $(OutputPath)/lib
-	Target = lib$(Package).a
-	TargetFile = $(TargetPath)/$(Target)
-endif
-ifeq ($(TargetType),so)
-	TargetPath = $(OutputPath)/lib
-	Target = lib$(Package).so
-	TargetFile = $(TargetPath)/$(Target)
-endif
+if [ "$Package" != "" ]; then
+    cd $CWORK_PATH/$Package
+fi
 
-ifneq ($(Test),)
-	TargetPath = $(OutputPath)/test/$(Package)
-	TestTarget = $(basename $(Source))
-	TargetFile = $(TestTarget:%=$(TargetPath)/%)
-	Rpath = ../../lib
-endif
+Deps=`cdep ensure`
 
-# Include & Define
-Include += $(Import:%=$(OutputPath)/include/%)
-CFLAGS += $(Include:%=-I%) $(Define:%=-D%) -m64
+if [ "$Dep" != "0" ]; then
+    for pkg in $Deps; do
+        Package=$pkg Dep=0 cmk $@
+    done
+fi
 
-# Library
-LibraryPath = -L$(OutputPath)/lib
-Library = $(Import:%=-l%)
+if [ ! -f "Makefile" -a ! -f "makefile" ]; then
+    create_mk makefile $Target
+fi
 
-# ObjectPath
-ObjectPath = $(OutputPath)/obj/$(Package)
-
-# ExportHeaderPath
-ExportHeaderPath = $(OutputPath)/include/$(Package)
-
-# Config
-ifeq ($(Config),Release)
-	CFLAGS += -O3 -march=native
-else
-	CFLAGS += -g -D_DEBUG -Wall
-	ifeq ($(UnixName),Linux)
-		LDFLAGS += -rdynamic
-	endif
-endif
-
-# Link
-ifeq ($(TargetType),x)
-	Link = g++ -Wl,-rpath,$(Rpath) $(LibraryPath) -o $@ $^ $(Library) $(LDFLAGS)
-endif
-
-ifeq ($(TargetType),a)
-	CFLAGS += -fPIC
-	Link = ar cr $@ $^
-endif
-
-ifeq ($(TargetType),so)
-	Shared = -shared
-	ifeq ($(UnixName),Darwin)
-		Shared = -dynamiclib -install_name @rpath/$(Target)
-	endif
-	CFLAGS += -fPIC
-	Link = g++ $(Shared) $(LibraryPath) $(Library) $(LDFLAGS) -o $@ $^
-endif
-
-CXXFLAGS += $(CFLAGS)
-
-Obj = $(addsuffix .o,$(basename $(Source)))
-Dep = $(addsuffix .d,$(basename $(Source)))
-
-SourcePath = $(dir $(Source))
-$(shell mkdir -p $(TargetPath) $(SourcePath:%=$(ObjectPath)/%))
-
-define info
-	@echo ">>>> $(UnixName).make:" $(Target) [$(Config)]
-	@echo CC = $(CC) $(CFLAGS)
-	@echo CXX = $(CXX) $(CXXFLAGS)
-	@echo Link =  $(Link)
-	@echo "<<<<"
-endef
-
-.PHONY: all info clean
-all: info $(TargetFile) $(ExportHeaderPath)
-
-clean:
-	rm -rf $(ObjectPath)
-
-info:
-	$(info)
-
-$(OutputPath)/bin/$(Target): $(Obj:%=$(ObjectPath)/%)
-	@echo Link $@ ...
-	@$(Link)
-
-$(OutputPath)/lib/$(Target): $(Obj:%=$(ObjectPath)/%)
-	@echo Link $@ ...
-	@$(Link)
-
-$(OutputPath)/test/$(Package)/%: $(ObjectPath)/%.o
-	@echo Link $@ ...
-	@$(Link)
-
--include $(Dep:%=$(ObjectPath)/%)
-
-$(ObjectPath)/%.o: %.c
-	@echo CC $< ...
-	@$(CC) $(CFLAGS) -o $@ -c $<
-
-$(ObjectPath)/%.o: %.cpp
-	@echo CXX $< ...
-	@$(CXX) $(CXXFLAGS) -o $@ -c $<
-
-$(ObjectPath)/%.d: %.c
-	@$(CC) -MM $(CFLAGS) $< -MT $(@:%.d=%.o) -MT $@ > $@
-
-$(ObjectPath)/%.d: %.cpp
-	@$(CXX) -MM $(CXXFLAGS) $< -MT $(@:%.d=%.o) -MT $@ > $@
-
-$(ExportHeaderPath): $(ExportHeader)
-	@if [ "$^" != "" ]; then mkdir -p $@ && cp $^ $@; fi
-	@touch $@
+Import=$Deps make $@

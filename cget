@@ -37,12 +37,12 @@ function split_repo() {
     echo $repo
 }
 
-if [ "$CPKG_PATH" == "" ]; then
-    CPKG_PATH=`echo ~`/cpkg
+if [ "$CWORK_PATH" == "" ]; then
+    CWORK_PATH=`echo ~`/cwork
 fi
 
 repo=$(split_repo $1)
-repo_path="$CPKG_PATH/$repo"
+repo_path="$CWORK_PATH/$repo"
 
 if [ -d $repo_path ]; then
     if [ "$2" != "" ] && [ "$2" != "$(head_rev $repo_path)" ]; then

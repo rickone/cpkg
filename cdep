@@ -1,0 +1,120 @@
+#!/bin/bash
+
+dep_file="c.dep"
+pkgs=()
+
+function load() {
+    if [ -f $1 ]; then
+        cat $1
+    fi
+}
+
+function save() {
+    rm -f $dep_file
+
+    for line in $@; do
+        if [ "$line" != "" ]; then
+            echo $line >> $dep_file
+        fi
+    done
+}
+
+function push_pkg() {
+    test_pkg $1
+    if [ $? != 0 ]; then
+        return
+    fi
+
+    pkgs+=($1)
+}
+
+function test_pkg() {
+    for i in ${pkgs[@]}; do
+        if [ "$i" == "$1" ]; then
+            return 128
+        fi
+    done
+
+    return 0
+}
+
+function add() {
+    if [ "$1" == "" ]; then
+        echo "cdep add <pkg>"
+        return
+    fi
+
+    cget $1
+
+    local data=($(load $dep_file))
+    for pkg in ${data[@]}; do
+        if [ "$pkg" == "$1" ]; then
+            echo "package '$1' exists!" >&2
+            exit 1
+        fi
+    done
+
+    save ${data[@]} "$1"
+    echo '$1' added
+}
+
+function remove() {
+    if [ "$1" == "" ]; then
+        echo "cdep remove <pkg>"
+        return
+    fi
+
+    local data=($(load $dep_file))
+    local i=0
+    for pkg in ${data[@]}; do
+        if [ $pkg == "$1" ]; then
+            data[$i]=""
+            save ${data[@]}
+            echo '$1' removed
+            return
+        fi
+
+        let i++
+    done
+}
+
+function ensure() {
+    local dep=$dep_file
+    if [ "$1" != "." ]; then
+        dep=$CWORK_PATH/$1/$dep_file
+    fi
+
+    for pkg in $(load $dep); do
+        test_pkg $pkg
+        if [ $? != 0 ]; then
+            continue
+        fi
+
+        cget $pkg
+        push_pkg $pkg
+        ensure $pkg
+    done
+
+    if [ "$1" != "." ]; then
+        echo $1
+    fi
+}
+
+if [ "$CWORK_PATH" == "" ]; then
+    CWORK_PATH=`echo ~`/cwork
+fi
+
+case $1 in
+    add)
+        add $2
+    ;;
+    remove)
+        remove $2
+    ;;
+    ensure)
+        ensure .
+    ;;
+    *)
+        echo "Usage: cdep <add|remove|ensure>"
+    ;;
+esac
