@@ -1,5 +1,6 @@
 #Target = x x.so x.a test
 #Source	=
+#Test =
 #Lib =
 #LibPath =
 #Include =
@@ -12,13 +13,18 @@
 #CC = cc
 #CXX = c++
 
-UnixName ?= $(shell uname)
-OutputPath ?= ..
-TargetType = $(suffix $(Target))
+include $(CMK_CONFIG)
 
-# TargetName, TargetPath & TargetFile
+UnixName ?= $(shell uname)
+OutputPath ?= .
+TargetType = $(suffix $(Target))
+ifeq ($(MAKECMDGOALS),test)
+	TargetType =
+	Source = $(Test)
+endif
+
+# TargetPath & TargetFile
 ifeq ($(TargetType),)
-	TargetName = $(Target)
 	TargetPath = $(OutputPath)/bin
 	TargetFile = $(TargetPath)/$(Target)
 	
@@ -27,21 +33,14 @@ ifeq ($(TargetType),)
 	endif
 endif
 ifeq ($(TargetType),.a)
-	TargetName = $(Target:lib%.a=%)
 	TargetPath = $(OutputPath)/lib
 	TargetFile = $(TargetPath)/$(Target)
 	CFLAGS += -fPIC
 endif
 ifeq ($(TargetType),.so)
-	TargetName = $(Target:lib%.so=%)
 	TargetPath = $(OutputPath)/lib
 	TargetFile = $(TargetPath)/$(Target)
 	CFLAGS += -fPIC
-endif
-
-ifeq ($(Target),test)
-	TestTarget = $(basename $(Source))
-	TargetFile = $(TestTarget:%=$(TargetPath)/%)
 endif
 
 # Include & Define
@@ -66,8 +65,17 @@ endif
 
 LDFLAGS += $(LibPath:%=-L%) $(Lib:%=-l%)
 
+ifeq ($(MAKECMDGOALS),test)
+	TargetBase = $(basename $(Target))
+	TargetLib = $(TargetBase:lib%=%)
+	LDFLAGS += -l$(TargetLib)
+
+	TestTarget = $(basename $(Source))
+	TestTargetFile = $(TestTarget:test/%=$(TargetPath)/%)
+endif
+
 # ObjectPath
-ObjectPath = $(OutputPath)/obj/$(TargetName)
+ObjectPath = $(OutputPath)/obj
 
 ifeq ($(UnixName),Linux)
 	LDFLAGS += -rdynamic
@@ -101,18 +109,20 @@ SourcePath = $(dir $(Source))
 $(shell mkdir -p $(TargetPath) $(SourcePath:%=$(ObjectPath)/%))
 
 define info
-	@echo ">>>> $(UnixName).make:" $(Target)
+	@echo ">>>> $(UnixName) cmk:" $(Target) $(MAKECMDGOALS)
 	@echo CC = $(CC) $(CFLAGS)
 	@echo CXX = $(CXX) $(CXXFLAGS)
-	@echo Link =  $(Link)
+	@echo Link = $(Link)
 	@echo "<<<<"
 endef
 
-.PHONY: all info clean
+.PHONY: all test info clean
 all: info $(TargetFile)
 
+test: info $(TestTargetFile)
+
 clean:
-	rm -rf $(ObjectPath)
+	rm -rf obj lib bin
 
 info:
 	$(info)
@@ -125,7 +135,7 @@ $(OutputPath)/lib/$(Target): $(Obj:%=$(ObjectPath)/%)
 	@echo Link $@ ...
 	@$(Link)
 
-$(OutputPath)/bin/%: $(ObjectPath)/%.o
+$(OutputPath)/bin/%: $(ObjectPath)/test/%.o
 	@echo Link $@ ...
 	@$(Link)
 

@@ -9,7 +9,7 @@ function update_to() {
         return
     fi
 
-    if [ "$2" == "master" ]; then
+    if [ "$2" == "latest" ]; then
         (
             cd $1
             git pull

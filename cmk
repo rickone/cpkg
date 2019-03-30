@@ -1,24 +1,80 @@
 #!/bin/bash
 
-function create_mk() {
-    if [ -f $1 ]; then
-        return
+mk_config="config.mk"
+mk_file="$CUTILS_PATH/template.mk"
+deps=()
+
+function new() {
+    if [ -f $mk_config ]; then
+        echo "$mk_config exists!" >&2
+        exit 1
     fi
 
-    echo "create_mk $1 $2"
+    if [ "$1" == "" ]; then
+        echo "cmk new <Target>"
+        echo "<Target>: xx, libxx.a or libxx.so"
+        exit 2
+    fi
 
-    echo "Target = $2" >> $1
-    echo "Source = \$(wildcard *.cpp *.c)" >> $1
-    echo "Lib =" >> $1
-    echo "LibPath =" >> $1
-    echo "Include =" >> $1
-    echo "Define =" >> $1
-    echo "CFLAGS = -g -D_DEBUG -Wall" >> $1
-    echo "CXXFLAGS = -std=c++14" >> $1
-    echo "LDFLAGS =" >> $1
-    echo "Rpath =" >> $1
-    echo "" >> $1
-    echo "include \$(CUTILS_PATH)/template.cmk" >> $1
+    echo "Target = $1" >> $mk_config
+    echo "Source = \$(wildcard src/*.cpp src/*.c)" >> $mk_config
+    echo "Test = \$(wildcard test/*.cpp test/*.c)" >> $mk_config
+    echo "Lib =" >> $mk_config
+    echo "LibPath =" >> $mk_config
+    echo "Include =" >> $mk_config
+    echo "Define =" >> $mk_config
+    echo "CFLAGS = -g -D_DEBUG -Wall" >> $mk_config
+    echo "CXXFLAGS = -std=c++14" >> $mk_config
+    echo "LDFLAGS =" >> $mk_config
+    echo "Rpath =" >> $mk_config
+}
+
+function mk() {
+    if [ -d "vendor" ]; then
+        VendorPath=vendor
+    fi
+
+    Import=${deps[@]} VendorPath=$VendorPath CWORK_PATH=$CWORK_PATH CMK_CONFIG=$mk_config make -f $mk_file $@
+}
+
+function all() {
+    deps=($(cdep list))
+    mk $@
+    mk test $@
+
+    # for runtime load
+    for pkg in ${deps[@]}; do
+        if [ -d "vendor/$pkg/lib" ]; then
+            cp vendor/$pkg/lib/*.so lib 2>/dev/null
+            continue
+        fi
+
+        if [ -d "$CWORK_PATH/$pkg/lib" ]; then
+            cp $CWORK_PATH/$pkg/lib/*.so lib 2>/dev/null
+        fi
+    done
+}
+
+function vendor() {
+    rm -rf vendor/*
+
+    deps=($(cdep ensure))
+    for pkg in ${deps[@]}; do
+        (
+            cget $pkg
+            cd $CWORK_PATH/$pkg
+            cmk $@
+        )
+        if [ -d "$CWORK_PATH/$pkg/include" ]; then
+            mkdir -p vendor/$pkg/include
+            cp $CWORK_PATH/$pkg/include/*.h vendor/$pkg/include
+        fi
+
+        if [ -d "$CWORK_PATH/$pkg/lib" ]; then
+            mkdir -p vendor/$pkg/lib
+            cp $CWORK_PATH/$pkg/lib/* vendor/$pkg/lib
+        fi
+    done
 }
 
 if [ "$CUTILS_PATH" == "" ]; then
@@ -30,20 +86,24 @@ if [ "$CWORK_PATH" == "" ]; then
     CWORK_PATH=`echo ~`/cwork
 fi
 
-if [ "$Package" != "" ]; then
-    cd $CWORK_PATH/$Package
-fi
-
-Deps=`cdep ensure`
-
-if [ "$Dep" != "0" ]; then
-    for pkg in $Deps; do
-        Package=$pkg Dep=0 cmk $@
-    done
-fi
-
-if [ ! -f "Makefile" -a ! -f "makefile" ]; then
-    create_mk makefile $Target
-fi
-
-Import=$Deps make $@
+case $1 in
+    new)
+        $@
+    ;;
+    all)
+        $@
+    ;;
+    vendor)
+        $@
+    ;;
+    clean)
+        make -f $mk_file clean
+    ;;
+    help)
+        echo "Usage: cmk [new|all|vendor|clean]"
+    ;;
+    *)
+        deps=($(cdep list))
+        mk $@
+    ;;
+esac

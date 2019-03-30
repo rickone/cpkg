@@ -1,6 +1,6 @@
 #!/bin/bash
 
-dep_file="c.dep"
+dep_file="import.dep"
 pkgs=()
 
 function load() {
@@ -38,6 +38,12 @@ function test_pkg() {
     return 0
 }
 
+function list() {
+    for pkg in $(load $dep_file); do
+        echo $pkg
+    done
+}
+
 function add() {
     if [ "$1" == "" ]; then
         echo "cdep add <pkg>"
@@ -55,7 +61,7 @@ function add() {
     done
 
     save ${data[@]} "$1"
-    echo '$1' added
+    echo $1 added
 }
 
 function remove() {
@@ -70,7 +76,7 @@ function remove() {
         if [ $pkg == "$1" ]; then
             data[$i]=""
             save ${data[@]}
-            echo '$1' removed
+            echo $1 removed
             return
         fi
 
@@ -79,7 +85,7 @@ function remove() {
 }
 
 function ensure() {
-    local dep=$dep_file
+    local dep=$1/$dep_file
     if [ "$1" != "." ]; then
         dep=$CWORK_PATH/$1/$dep_file
     fi
@@ -105,14 +111,18 @@ if [ "$CWORK_PATH" == "" ]; then
 fi
 
 case $1 in
+    list)
+        $@
+    ;;
     add)
-        add $2
+        $@
     ;;
     remove)
-        remove $2
+        $@
     ;;
     ensure)
-        ensure .
+        save $(ensure .)
+        list
     ;;
     *)
         echo "Usage: cdep <add|remove|ensure>"
