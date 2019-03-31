@@ -55,6 +55,13 @@ function mk() {
 
 function all() {
     deps=($(cdep list))
+    for pkg in ${deps[@]}; do
+        (
+            cget $pkg
+            cd $CWORK_PATH/$pkg
+            cmk $@
+        )
+    done
     mk $@
     mk test $@
 
@@ -74,7 +81,7 @@ function all() {
 function vendor() {
     rm -rf vendor/*
 
-    deps=($(cdep ensure))
+    deps=($(cdep list))
     for pkg in ${deps[@]}; do
         (
             cget $pkg
