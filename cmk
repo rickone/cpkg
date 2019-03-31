@@ -1,19 +1,35 @@
 #!/bin/bash
 
 mk_config="config.mk"
-mk_file="$CUTILS_PATH/template.mk"
 deps=()
+
+function mk_file() {
+    local mf="$CUTILS_PATH/template.mk"
+    if [ -f $mf ]; then
+        echo $mf
+        return
+    fi
+
+    mf="`echo ~`/cutils/template.mk"
+    if [ -f $mf ]; then
+        echo $mf
+        return
+    fi
+
+    echo "can't find template.mk, set env.CUTILS_PATH to figure out!" >&2
+    exit 1
+}
 
 function new() {
     if [ -f $mk_config ]; then
         echo "$mk_config exists!" >&2
-        exit 1
+        exit 2
     fi
 
     if [ "$1" == "" ]; then
         echo "cmk new <Target>"
         echo "<Target>: xx, libxx.a or libxx.so"
-        exit 2
+        exit
     fi
 
     echo "Target = $1" >> $mk_config
@@ -34,7 +50,7 @@ function mk() {
         VendorPath=vendor
     fi
 
-    Import=${deps[@]} VendorPath=$VendorPath CWORK_PATH=$CWORK_PATH CMK_CONFIG=$mk_config make -f $mk_file $@
+    Import=${deps[@]} VendorPath=$VendorPath CWORK_PATH=$CWORK_PATH CMK_CONFIG=$mk_config make -f $(mk_file) $@
 }
 
 function all() {
@@ -77,11 +93,6 @@ function vendor() {
     done
 }
 
-if [ "$CUTILS_PATH" == "" ]; then
-    echo "env.CUTILS_PATH not set!" >&2
-    exit 1
-fi
-
 if [ "$CWORK_PATH" == "" ]; then
     CWORK_PATH=`echo ~`/cwork
 fi
@@ -97,7 +108,7 @@ case $1 in
         $@
     ;;
     clean)
-        make -f $mk_file clean
+        make -f $(mk_file) clean
     ;;
     help)
         echo "Usage: cmk [new|all|vendor|clean]"
