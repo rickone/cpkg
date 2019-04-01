@@ -68,12 +68,22 @@ function all() {
     # for runtime load
     for pkg in ${deps[@]}; do
         if [ -d "vendor/$pkg/lib" ]; then
-            cp vendor/$pkg/lib/*.so lib 2>/dev/null
+            for so in `ls vendor/$pkg/lib/*.so 2>/dev/null`; do
+                (
+                    cd lib
+                    ln -s ../$so ${so##*/}
+                )
+            done
             continue
         fi
 
         if [ -d "$CWORK_PATH/$pkg/lib" ]; then
-            cp $CWORK_PATH/$pkg/lib/*.so lib 2>/dev/null
+            for so in `ls $CWORK_PATH/$pkg/lib/*.so 2>/dev/null`; do
+                (
+                    cd lib
+                    ln -s $so ${so##*/}
+                )
+            done
         fi
     done
 }
