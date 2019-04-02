@@ -6,5 +6,5 @@ PWD=$(shell pwd)
 
 install: $(Utils:%=$(TargetPath)/%)
 
-$(TargetPath)/%: $(PWD)/%
+$(TargetPath)/%: $(PWD)/bin/%
 	@ln -s $< $@

@@ -4,20 +4,13 @@ mk_config="config.mk"
 deps=()
 
 function mk_file() {
-    local mf="$CUTILS_PATH/template.mk"
-    if [ -f $mf ]; then
-        echo $mf
-        return
+    local mf="$CWORK_PATH/etc/template.mk"
+    if [ ! -f $mf ]; then
+        echo "can't find template.mk, set env.CWORK_PATH to figure out!" >&2
+        exit 1
     fi
 
-    mf="`echo ~`/cutils/template.mk"
-    if [ -f $mf ]; then
-        echo $mf
-        return
-    fi
-
-    echo "can't find template.mk, set env.CUTILS_PATH to figure out!" >&2
-    exit 1
+    echo $mf
 }
 
 function new() {
@@ -58,7 +51,7 @@ function all() {
     for pkg in ${deps[@]}; do
         (
             cget $pkg
-            cd $CWORK_PATH/$pkg
+            cd $CWORK_PATH/src/$pkg
             cmk $@
         )
     done
@@ -77,8 +70,8 @@ function all() {
             continue
         fi
 
-        if [ -d "$CWORK_PATH/$pkg/lib" ]; then
-            for so in `ls $CWORK_PATH/$pkg/lib/*.so 2>/dev/null`; do
+        if [ -d "$CWORK_PATH/src/$pkg/lib" ]; then
+            for so in `ls $CWORK_PATH/src/$pkg/lib/*.so 2>/dev/null`; do
                 (
                     cd lib
                     ln -s $so ${so##*/}
@@ -95,17 +88,17 @@ function vendor() {
     for pkg in ${deps[@]}; do
         (
             cget $pkg
-            cd $CWORK_PATH/$pkg
+            cd $CWORK_PATH/src/$pkg
             cmk $@
         )
-        if [ -d "$CWORK_PATH/$pkg/include" ]; then
+        if [ -d "$CWORK_PATH/src/$pkg/include" ]; then
             mkdir -p vendor/$pkg/include
-            cp $CWORK_PATH/$pkg/include/*.h vendor/$pkg/include
+            cp $CWORK_PATH/src/$pkg/include/*.h vendor/$pkg/include
         fi
 
-        if [ -d "$CWORK_PATH/$pkg/lib" ]; then
+        if [ -d "$CWORK_PATH/src/$pkg/lib" ]; then
             mkdir -p vendor/$pkg/lib
-            cp $CWORK_PATH/$pkg/lib/* vendor/$pkg/lib
+            cp $CWORK_PATH/src/$pkg/lib/* vendor/$pkg/lib
         fi
     done
 }

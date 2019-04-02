@@ -48,7 +48,7 @@ Include += $(OutputPath)/include
 ifneq ($(VendorPath),)
 	Include += $(Import:%=$(VendorPath)/%/include)
 else ifneq ($(CWORK_PATH),)
-	Include += $(Import:%=$(CWORK_PATH)/%/include)
+	Include += $(Import:%=$(CWORK_PATH)/src/%/include)
 endif
 
 CFLAGS += $(Include:%=-I%) $(Define:%=-D%) -m64
@@ -58,7 +58,7 @@ LibPath += $(OutputPath)/lib
 ifneq ($(VendorPath),)
 	LibPath += $(Import:%=$(VendorPath)/%/lib)
 else ifneq ($(CWORK_PATH),)
-	LibPath += $(Import:%=$(CWORK_PATH)/%/lib)
+	LibPath += $(Import:%=$(CWORK_PATH)/src/%/lib)
 endif
 
 LDFLAGS += $(LibPath:%=-L%) $(Lib:%=-l%)

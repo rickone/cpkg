@@ -87,7 +87,7 @@ function remove() {
 function ensure() {
     local dep=$1/$dep_file
     if [ "$1" != "." ]; then
-        dep=$CWORK_PATH/$1/$dep_file
+        dep=$CWORK_PATH/src/$1/$dep_file
     fi
 
     for pkg in $(load $dep); do

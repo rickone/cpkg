@@ -42,7 +42,7 @@ if [ "$CWORK_PATH" == "" ]; then
 fi
 
 repo=$(split_repo $1)
-repo_path="$CWORK_PATH/$repo"
+repo_path="$CWORK_PATH/src/$repo"
 
 if [ -d $repo_path ]; then
     if [ "$2" != "" ] && [ "$2" != "$(head_rev $repo_path)" ]; then
