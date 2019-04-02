@@ -49,6 +49,6 @@ if [ -d $repo_path ]; then
         update_to $repo_path $2
     fi
 else
-    git clone https://$repo.git $repo_path
+    git clone https://$repo $repo_path
     update_to $repo_path $2
 fi

@@ -43,7 +43,20 @@ function mk() {
         VendorPath=vendor
     fi
 
-    Import=${deps[@]} VendorPath=$VendorPath CWORK_PATH=$CWORK_PATH CMK_CONFIG=$mk_config make -f $(mk_file) $@
+    if [ -f $mk_config ]; then
+        Import=${deps[@]} VendorPath=$VendorPath CWORK_PATH=$CWORK_PATH CMK_CONFIG=$mk_config make -f $(mk_file) $@
+        return
+    fi
+
+    local pwd=`pwd`
+    local pkg=${pwd##$CWORK_PATH/src/}
+    if [ -f "$CWORK_PATH/mksh/$pkg/build.sh" ]; then
+        sh $CWORK_PATH/mksh/$pkg/build.sh
+        return
+    fi
+
+    echo "can't find $mk_config or $CWORK_PATH/mksh/$pkg/build.sh!" >&2
+    exit 3
 }
 
 function all() {
