@@ -38,13 +38,23 @@ function new() {
     echo "Rpath =" >> $mk_config
 }
 
+function import_pkgs() {
+    for line in ${deps[@]}; do
+        local field=(${line//@/ })
+        local pkg=${field[0]}
+
+        echo $pkg
+    done
+}
+
 function mk() {
     if [ -d "vendor" ]; then
         VendorPath=vendor
     fi
 
     if [ -f $mk_config ]; then
-        Import=${deps[@]} VendorPath=$VendorPath CWORK_PATH=$CWORK_PATH CMK_CONFIG=$mk_config make -f $(mk_file) $@
+        local import=($(import_pkgs))
+        Import=${import[@]} VendorPath=$VendorPath CWORK_PATH=$CWORK_PATH CMK_CONFIG=$mk_config make -f $(mk_file) $@
         return
     fi
 
@@ -61,9 +71,13 @@ function mk() {
 
 function all() {
     deps=($(cdep list))
-    for pkg in ${deps[@]}; do
+    for line in ${deps[@]}; do
+        local field=(${line//@/ })
+        local pkg=${field[0]}
+        local rev=${field[1]}
+
         (
-            cget $pkg
+            cget $pkg $rev
             cd $CWORK_PATH/src/$pkg
             cmk $@
         )
@@ -72,7 +86,10 @@ function all() {
     mk test $@
 
     # for runtime load
-    for pkg in ${deps[@]}; do
+    for line in ${deps[@]}; do
+        local field=(${line//@/ })
+        local pkg=${field[0]}
+
         if [ -d "vendor/$pkg/lib" ]; then
             for so in `ls vendor/$pkg/lib/*.so 2>/dev/null`; do
                 (
@@ -98,9 +115,13 @@ function vendor() {
     rm -rf vendor/*
 
     deps=($(cdep list))
-    for pkg in ${deps[@]}; do
+    for line in ${deps[@]}; do
+        local field=(${line//@/ })
+        local pkg=${field[0]}
+        local rev=${field[1]}
+
         (
-            cget $pkg
+            cget $pkg $rev
             cd $CWORK_PATH/src/$pkg
             cmk $@
         )

@@ -39,29 +39,41 @@ function test_pkg() {
 }
 
 function list() {
-    for pkg in $(load $dep_file); do
-        echo $pkg
+    for line in $(load $dep_file); do
+        echo $line
     done
 }
 
 function add() {
     if [ "$1" == "" ]; then
-        echo "cdep add <pkg>"
+        echo "cdep add <pkg> [latest|tag|commit]"
         return
     fi
 
-    cget $1
+    cget $1 $2
+    local rev=$2
+    if [ "$2" == "latest" -o "$2" == "" ]; then
+        rev=`cd $CWORK_PATH/src/$1 && git rev-parse HEAD`
+    fi
 
     local data=($(load $dep_file))
-    for pkg in ${data[@]}; do
+    local i=0
+    for line in ${data[@]}; do
+        local field=(${line//@/ })
+        local pkg=${field[0]}
+
         if [ "$pkg" == "$1" ]; then
-            echo "package '$1' exists!" >&2
-            exit 1
+            data[$i]="$1@$rev"
+            save ${data[@]}
+            echo $1 updated at $rev
+            return
         fi
+
+        let i++
     done
 
-    save ${data[@]} "$1"
-    echo $1 added
+    save ${data[@]} "$1@$rev"
+    echo $1 added at $rev
 }
 
 function remove() {
@@ -72,7 +84,10 @@ function remove() {
 
     local data=($(load $dep_file))
     local i=0
-    for pkg in ${data[@]}; do
+    for line in ${data[@]}; do
+        local field=(${line//@/ })
+        local pkg=${field[0]}
+
         if [ $pkg == "$1" ]; then
             data[$i]=""
             save ${data[@]}
@@ -90,19 +105,23 @@ function ensure() {
         dep=$CWORK_PATH/src/$1/$dep_file
     fi
 
-    for pkg in $(load $dep); do
+    for line in $(load $dep); do
+        local field=(${line//@/ })
+        local pkg=${field[0]}
+        local rev=${field[1]}
+
         test_pkg $pkg
         if [ $? != 0 ]; then
             continue
         fi
 
-        cget $pkg
+        cget $pkg $rev
         push_pkg $pkg
-        ensure $pkg
+        ensure $pkg $rev
     done
 
     if [ "$1" != "." ]; then
-        echo $1
+        echo "$1@$2"
     fi
 }
 
@@ -116,9 +135,11 @@ case $1 in
     ;;
     add)
         $@
+        save $(ensure .)
     ;;
     remove)
         $@
+        save $(ensure .)
     ;;
     ensure)
         save $(ensure .)

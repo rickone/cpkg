@@ -17,6 +17,10 @@ function update_to() {
         return
     fi
 
+    if [ "$2" == "$(head_rev $1)" ]; then
+        return
+    fi
+
     (
         cd $1
         git reset --hard $2
@@ -44,11 +48,7 @@ fi
 repo=$(split_repo $1)
 repo_path="$CWORK_PATH/src/$repo"
 
-if [ -d $repo_path ]; then
-    if [ "$2" != "" ] && [ "$2" != "$(head_rev $repo_path)" ]; then
-        update_to $repo_path $2
-    fi
-else
+if [ ! -d $repo_path ]; then
     git clone https://$repo $repo_path
-    update_to $repo_path $2
 fi
+update_to $repo_path $2
