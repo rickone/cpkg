@@ -61,7 +61,7 @@ function mk() {
     local pwd=`pwd`
     local pkg=${pwd##$CWORK_PATH/src/}
     if [ -f "$CWORK_PATH/mksh/$pkg/build.sh" ]; then
-        sh $CWORK_PATH/mksh/$pkg/build.sh
+        sh $CWORK_PATH/mksh/$pkg/build.sh $@
         return
     fi
 
