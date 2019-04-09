@@ -1,6 +1,6 @@
 #!/bin/bash
 
-mk_config="config.mk"
+mk_config="config.cmk"
 deps=()
 
 function mk_file() {
@@ -60,12 +60,12 @@ function mk() {
 
     local pwd=`pwd`
     local pkg=${pwd##$CWORK_PATH/src/}
-    if [ -f "$CWORK_PATH/mksh/$pkg/build.sh" ]; then
-        sh $CWORK_PATH/mksh/$pkg/build.sh $@
+    if [ -f "$CWORK_PATH/plugin/$pkg/cmk" ]; then
+        sh $CWORK_PATH/plugin/$pkg/cmk $@
         return
     fi
 
-    echo "can't find $mk_config or $CWORK_PATH/mksh/$pkg/build.sh!" >&2
+    echo "can't find $mk_config or $CWORK_PATH/plugin/$pkg/cmk!" >&2
     exit 3
 }
 
